@@ -9,6 +9,8 @@ import { CopyPollLinkButton } from './CopyPollLinkButton'
 
 type Filter = 'active' | 'ending' | 'ended'
 
+const POLL_REFRESH_INTERVAL_MS = 20_000
+
 interface DashboardClientProps {
   initialPolls: DashboardPoll[]
 }
@@ -59,7 +61,7 @@ export function DashboardClient({ initialPolls }: DashboardClientProps) {
 
     const interval = setInterval(() => {
       void loadPolls()
-    }, 20_000)
+    }, POLL_REFRESH_INTERVAL_MS)
 
     return () => {
       clearInterval(interval)

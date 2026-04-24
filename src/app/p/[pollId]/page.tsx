@@ -19,6 +19,19 @@ async function getPoll(pollId: string) {
   return data
 }
 
+async function getVisibleComments(pollId: string) {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('poll_comments')
+    .select('id, poll_id, choice, comment_text, alias, created_at')
+    .eq('poll_id', pollId)
+    .eq('is_hidden', false)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  return data ?? []
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { pollId } = await params
   const poll = await getPoll(pollId)
@@ -47,6 +60,8 @@ export default async function PollPage({ params }: Props) {
   const poll = await getPoll(pollId)
   if (!poll) notFound()
 
+  const comments = await getVisibleComments(poll.id)
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-50 to-white px-4 py-12">
       <div className="mx-auto max-w-xl">
@@ -64,7 +79,7 @@ export default async function PollPage({ params }: Props) {
         </div>
 
         <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8">
-          <VotingSection poll={poll} />
+          <VotingSection poll={poll} initialComments={comments} />
         </div>
 
         <p className="mt-6 text-center text-xs text-gray-400">

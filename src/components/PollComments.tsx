@@ -1,11 +1,13 @@
 'use client'
 
 import { PollComment, Vote } from '@/types'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { COMMENT_MAX_LENGTH, COMMENT_MIN_LENGTH } from '@/lib/comments'
+import { useMemo, useState } from 'react'
 
 interface PollCommentsProps {
   pollId: string
   userVote: Vote | null
+  initialComments?: PollComment[]
 }
 
 function getOrCreateDeviceToken(): string {
@@ -21,31 +23,12 @@ function getOrCreateDeviceToken(): string {
   }
 }
 
-export function PollComments({ pollId, userVote }: PollCommentsProps) {
-  const [comments, setComments] = useState<PollComment[]>([])
+export function PollComments({ pollId, userVote, initialComments = [] }: PollCommentsProps) {
+  const [comments, setComments] = useState<PollComment[]>(initialComments)
   const [commentText, setCommentText] = useState('')
   const [alias, setAlias] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const loadComments = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/polls/${pollId}/comments`, { cache: 'no-store' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to load comments')
-      setComments(data.comments ?? [])
-    } catch {
-      // Keep UI functional even if comments endpoint is temporarily unavailable
-    }
-  }, [pollId])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadComments()
-    }, 0)
-
-    return () => clearTimeout(timer)
-  }, [loadComments])
 
   const yesComments = useMemo(
     () => comments.filter((comment) => comment.choice === 'YES'),
@@ -63,8 +46,8 @@ export function PollComments({ pollId, userVote }: PollCommentsProps) {
     }
 
     const trimmed = commentText.trim()
-    if (trimmed.length < 2 || trimmed.length > 500) {
-      setError('Comment must be between 2 and 500 characters.')
+    if (trimmed.length < COMMENT_MIN_LENGTH || trimmed.length > COMMENT_MAX_LENGTH) {
+      setError(`Comment must be between ${COMMENT_MIN_LENGTH} and ${COMMENT_MAX_LENGTH} characters.`)
       return
     }
 
@@ -114,7 +97,7 @@ export function PollComments({ pollId, userVote }: PollCommentsProps) {
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              maxLength={500}
+              maxLength={COMMENT_MAX_LENGTH}
               placeholder="Share your reasoning..."
               className="min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />

@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { Poll, VoteResult } from '@/types'
+import { useState } from 'react'
+import { Poll, PollComment, VoteResult } from '@/types'
 import { TurnstileWidget } from '@/components/TurnstileWidget'
 import { ResultsDisplay } from '@/components/ResultsDisplay'
 import { ShareButtons } from '@/components/ShareButtons'
@@ -35,16 +35,16 @@ function getInitialResult(pollShortId: string): VoteResult | null {
 
 interface VotingSectionProps {
   poll: Poll
+  initialComments?: PollComment[]
 }
 
-export function VotingSection({ poll }: VotingSectionProps) {
+export function VotingSection({ poll, initialComments = [] }: VotingSectionProps) {
   const [result, setResult] = useState<VoteResult | null>(() => getInitialResult(poll.short_id))
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleVote = useCallback(
-    async (choice: 'YES' | 'NO') => {
+  const handleVote = async (choice: 'YES' | 'NO') => {
       if (!turnstileToken && TURNSTILE_SITE_KEY) {
         setError('Please complete the bot verification first.')
         return
@@ -80,9 +80,7 @@ export function VotingSection({ poll }: VotingSectionProps) {
       } finally {
         setLoading(false)
       }
-    },
-    [poll.short_id, turnstileToken]
-  )
+  }
 
   const isPollEnded = poll.ends_at ? new Date(poll.ends_at) < new Date() : false
 
@@ -91,7 +89,7 @@ export function VotingSection({ poll }: VotingSectionProps) {
       <div className="space-y-8">
         <ResultsDisplay result={result} question={poll.question} />
         <ShareButtons pollId={poll.short_id} question={poll.question} appUrl={APP_URL} />
-        <PollComments pollId={poll.short_id} userVote={result.user_vote} />
+        <PollComments pollId={poll.short_id} userVote={result.user_vote} initialComments={initialComments} />
       </div>
     )
   }
@@ -143,7 +141,7 @@ export function VotingSection({ poll }: VotingSectionProps) {
         </>
       )}
 
-      <PollComments pollId={poll.short_id} userVote={null} />
+      <PollComments pollId={poll.short_id} userVote={null} initialComments={initialComments} />
     </div>
   )
 }

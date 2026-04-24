@@ -2,14 +2,37 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimiter } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
+import {
+  COMMENT_BLOCKLIST_PATTERNS,
+  COMMENT_MAX_LENGTH,
+  COMMENT_MIN_LENGTH,
+  normalizeCommentText,
+} from '@/lib/comments'
 
-const BAD_WORDS = ['fuck', 'shit', 'bitch', 'asshole', 'idiot']
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function getClientIp(req: NextRequest): string {
+  const cfIp = req.headers.get('cf-connecting-ip')?.trim()
+  if (cfIp) return cfIp
+
+  const realIp = req.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim()
+    if (first && /^[0-9a-fA-F:.]+$/.test(first)) return first
+  }
+
+  return '127.0.0.1'
+}
 
 function isCommentClean(text: string): boolean {
-  const normalized = text.toLowerCase()
-  if (BAD_WORDS.some((word) => normalized.includes(word))) return false
+  const normalized = normalizeCommentText(text)
+  if (COMMENT_BLOCKLIST_PATTERNS.some((pattern) => pattern.test(normalized))) return false
 
   // Basic spam checks
+  // Reject spam with 9+ consecutive identical characters (e.g., 'aaaaaaaaa').
   if (/(.)\1{8,}/.test(text)) return false
   if ((text.match(/https?:\/\//g) ?? []).length > 1) return false
 
@@ -60,7 +83,7 @@ export async function POST(
 ) {
   const { pollId } = await params
 
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+  const ip = getClientIp(req)
   if (rateLimiter(`comment:${ip}`)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
@@ -87,9 +110,15 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid choice' }, { status: 400 })
   }
 
-  if (!commentText || commentText.length < 2 || commentText.length > 500) {
+  if (
+    !commentText ||
+    commentText.length < COMMENT_MIN_LENGTH ||
+    commentText.length > COMMENT_MAX_LENGTH
+  ) {
     return NextResponse.json(
-      { error: 'Comment must be between 2 and 500 characters' },
+      {
+        error: `Comment must be between ${COMMENT_MIN_LENGTH} and ${COMMENT_MAX_LENGTH} characters`,
+      },
       { status: 400 }
     )
   }
@@ -100,6 +129,9 @@ export async function POST(
 
   if (!deviceToken || typeof deviceToken !== 'string') {
     return NextResponse.json({ error: 'Missing device token' }, { status: 400 })
+  }
+  if (!UUID_PATTERN.test(deviceToken)) {
+    return NextResponse.json({ error: 'Invalid device token format' }, { status: 400 })
   }
 
   if (!isCommentClean(commentText)) {
