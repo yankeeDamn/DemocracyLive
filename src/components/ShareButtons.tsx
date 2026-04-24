@@ -32,10 +32,38 @@ export function ShareButtons({ pollId, question, appUrl }: ShareButtonsProps) {
     }
   }
 
+  const handleNativeShare = async () => {
+    if (typeof navigator === 'undefined' || !navigator.share) return
+
+    try {
+      await navigator.share({
+        title: 'DemocracyLive Poll',
+        text: `Vote now: ${question}`,
+        url,
+      })
+    } catch {
+      // User canceled native share
+    }
+  }
+
+  const showNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
   return (
     <div>
       <p className="mb-3 text-sm font-medium text-gray-600">Share this poll</p>
       <div className="flex flex-wrap gap-2">
+        {/* Native share (mobile/web-share) */}
+        {showNativeShare && (
+          <button
+            onClick={handleNativeShare}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+            aria-label="Share poll"
+          >
+            <ShareIcon />
+            Share
+          </button>
+        )}
+
         {/* Twitter / X */}
         <a
           href={`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`}
@@ -92,6 +120,16 @@ export function ShareButtons({ pollId, question, appUrl }: ShareButtonsProps) {
         </button>
       </div>
     </div>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7" />
+      <path d="M16 6l-4-4-4 4" />
+      <path d="M12 2v14" />
+    </svg>
   )
 }
 

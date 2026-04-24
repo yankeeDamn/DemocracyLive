@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { VotingSection } from './VotingSection'
 import { APP_URL } from '@/lib/config'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 interface Props {
   params: Promise<{ pollId: string }>
@@ -51,9 +52,15 @@ export default async function PollPage({ params }: Props) {
       <div className="mx-auto max-w-xl">
         {/* Header */}
         <div className="mb-8 text-center">
-          <a href="/" className="text-sm font-medium text-indigo-600 hover:underline">
-            ← DemocracyLive
-          </a>
+          <div className="flex items-center justify-center gap-4 text-sm font-medium">
+            <Link href="/" className="text-indigo-600 hover:underline">
+              ← DemocracyLive
+            </Link>
+            <span className="text-gray-300">•</span>
+            <Link href="/dashboard" className="text-indigo-600 hover:underline">
+              Live dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8">

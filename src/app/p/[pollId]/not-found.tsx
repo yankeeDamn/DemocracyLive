@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
@@ -6,12 +8,12 @@ export default function NotFound() {
       <p className="mt-2 text-gray-500">
         This poll does not exist or may have been removed.
       </p>
-      <a
+      <Link
         href="/"
         className="mt-6 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         Go home
-      </a>
+      </Link>
     </main>
   )
 }

@@ -60,12 +60,31 @@ CREATE TABLE IF NOT EXISTS poll_requests (
 CREATE INDEX IF NOT EXISTS idx_poll_requests_status     ON poll_requests(status);
 CREATE INDEX IF NOT EXISTS idx_poll_requests_created_at ON poll_requests(created_at DESC);
 
+
+-- ----------------------------------------------------------
+-- poll_comments
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS poll_comments (
+  id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  poll_id      UUID        NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  choice       TEXT        NOT NULL CHECK (choice IN ('YES', 'NO')),
+  comment_text TEXT        NOT NULL,
+  alias        TEXT,
+  is_hidden    BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_poll_comments_poll_id     ON poll_comments(poll_id);
+CREATE INDEX IF NOT EXISTS idx_poll_comments_created_at  ON poll_comments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_poll_comments_visibility  ON poll_comments(is_hidden);
+
 -- ----------------------------------------------------------
 -- Row-Level Security
 -- ----------------------------------------------------------
 ALTER TABLE polls         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE poll_comments ENABLE ROW LEVEL SECURITY;
 
 -- polls: public read, authenticated (admin) write
 CREATE POLICY "Polls are publicly readable"
@@ -93,6 +112,20 @@ CREATE POLICY "Only admins can view poll requests"
 
 CREATE POLICY "Only admins can update poll requests"
   ON poll_requests FOR UPDATE USING (auth.role() = 'authenticated');
+
+
+-- poll_comments: public read (non-hidden) + insert, admin full moderation
+CREATE POLICY "Visible poll comments are publicly readable"
+  ON poll_comments FOR SELECT USING (is_hidden = FALSE OR auth.role() = 'authenticated');
+
+CREATE POLICY "Anyone can add poll comments"
+  ON poll_comments FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Only admins can update poll comments"
+  ON poll_comments FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Only admins can delete poll comments"
+  ON poll_comments FOR DELETE USING (auth.role() = 'authenticated');
 
 -- ----------------------------------------------------------
 -- Helper function – atomically increment vote counts

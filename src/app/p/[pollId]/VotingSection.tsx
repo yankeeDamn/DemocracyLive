@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Poll, VoteResult } from '@/types'
 import { TurnstileWidget } from '@/components/TurnstileWidget'
 import { ResultsDisplay } from '@/components/ResultsDisplay'
 import { ShareButtons } from '@/components/ShareButtons'
+import { PollComments } from '@/components/PollComments'
 import { TURNSTILE_SITE_KEY, APP_URL } from '@/lib/config'
 
 function getOrCreateDeviceToken(): string {
@@ -20,30 +21,27 @@ function getOrCreateDeviceToken(): string {
   }
 }
 
+function getInitialResult(pollShortId: string): VoteResult | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const stored = localStorage.getItem(`voted_${pollShortId}`)
+    if (!stored) return null
+    return JSON.parse(stored) as VoteResult
+  } catch {
+    return null
+  }
+}
+
 interface VotingSectionProps {
   poll: Poll
 }
 
 export function VotingSection({ poll }: VotingSectionProps) {
-  const [result, setResult] = useState<VoteResult | null>(null)
+  const [result, setResult] = useState<VoteResult | null>(() => getInitialResult(poll.short_id))
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    // Check if already voted (localStorage)
-    try {
-      const stored = localStorage.getItem(`voted_${poll.short_id}`)
-      if (stored) {
-        const parsed = JSON.parse(stored) as VoteResult
-        setResult(parsed)
-      }
-    } catch {
-      // ignore
-    }
-  }, [poll.short_id])
 
   const handleVote = useCallback(
     async (choice: 'YES' | 'NO') => {
@@ -88,19 +86,12 @@ export function VotingSection({ poll }: VotingSectionProps) {
 
   const isPollEnded = poll.ends_at ? new Date(poll.ends_at) < new Date() : false
 
-  if (!mounted) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-      </div>
-    )
-  }
-
   if (result) {
     return (
       <div className="space-y-8">
         <ResultsDisplay result={result} question={poll.question} />
         <ShareButtons pollId={poll.short_id} question={poll.question} appUrl={APP_URL} />
+        <PollComments pollId={poll.short_id} userVote={result.user_vote} />
       </div>
     )
   }
@@ -109,10 +100,10 @@ export function VotingSection({ poll }: VotingSectionProps) {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{poll.question}</h1>
 
+      <ShareButtons pollId={poll.short_id} question={poll.question} appUrl={APP_URL} />
+
       {isPollEnded ? (
-        <div className="rounded-xl bg-gray-100 px-5 py-4 text-center text-gray-600">
-          This poll has ended.
-        </div>
+        <div className="rounded-xl bg-gray-100 px-5 py-4 text-center text-gray-600">This poll has ended.</div>
       ) : (
         <>
           <p className="text-sm text-gray-500">Your vote is anonymous. Cast it below.</p>
@@ -151,6 +142,8 @@ export function VotingSection({ poll }: VotingSectionProps) {
           )}
         </>
       )}
+
+      <PollComments pollId={poll.short_id} userVote={null} />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { AdminPollList } from '@/components/AdminPollList'
 import { AdminRequestList } from '@/components/AdminRequestList'
+import { AdminCommentList } from '@/components/AdminCommentList'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
@@ -20,18 +21,23 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: polls }, { data: requests }] = await Promise.all([
+  const [{ data: polls }, { data: requests }, { data: comments }] = await Promise.all([
     admin.from('polls').select('*').order('created_at', { ascending: false }),
     admin.from('poll_requests').select('*').order('created_at', { ascending: false }),
+    admin
+      .from('poll_comments')
+      .select('id, poll_id, choice, comment_text, alias, is_hidden, created_at, polls(short_id, question)')
+      .order('created_at', { ascending: false })
+      .limit(100),
   ])
 
   const totalVotes = (polls ?? []).reduce((sum, p) => sum + (p.total_count ?? 0), 0)
   const pendingCount = (requests ?? []).filter((r) => r.status === 'PENDING').length
+  const commentCount = (comments ?? []).length
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
-      <div className="mx-auto max-w-4xl space-y-10">
-        {/* Header */}
+      <div className="mx-auto max-w-5xl space-y-10">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">🗳 DemocracyLive Admin</h1>
@@ -47,14 +53,13 @@ export default async function AdminPage() {
           </form>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Total polls" value={(polls ?? []).length} />
           <StatCard label="Total votes" value={totalVotes} />
+          <StatCard label="Comments" value={commentCount} />
           <StatCard label="Pending requests" value={pendingCount} highlight={pendingCount > 0} />
         </div>
 
-        {/* Poll requests */}
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800">Poll requests</h2>
@@ -62,7 +67,6 @@ export default async function AdminPage() {
           <AdminRequestList requests={requests ?? []} />
         </section>
 
-        {/* Polls */}
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800">All polls</h2>
@@ -74,6 +78,13 @@ export default async function AdminPage() {
             </Link>
           </div>
           <AdminPollList polls={polls ?? []} />
+        </section>
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">Comment moderation</h2>
+          </div>
+          <AdminCommentList comments={comments ?? []} />
         </section>
       </div>
     </main>
