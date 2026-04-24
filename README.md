@@ -10,13 +10,15 @@ Built with **Next.js 15 App Router**, **Tailwind CSS**, **Supabase**, and **Clou
 
 | Feature | Detail |
 |---|---|
-| Public poll page | `/p/[pollId]` — question, YES/NO buttons, results after voting |
+| Public poll page | `/p/[pollId]` — question, YES/NO buttons, sharing, results, and comments |
 | Anonymous voting | Client: localStorage device token. Server: SHA-256 hash + DB unique constraint |
 | Bot protection | Cloudflare Turnstile on vote submit + poll request form |
 | Rate limiting | 10 req / 60 s / IP (in-memory; swap for Upstash Redis in production) |
-| Social sharing | Twitter/X, Facebook, WhatsApp, Copy link |
+| Social sharing | Native share (supported devices), Twitter/X, Facebook, WhatsApp, Copy link |
 | Open Graph images | Dynamic 1200×630 OG image per poll |
 | Poll requests | `/request` — public form → admin review queue |
+| Live dashboard | `/dashboard` — active/ending/ended poll tracking with near-real-time refresh |
+| Poll comments | Anonymous YES/NO comments tied to voted choice, plus admin moderation |
 | Admin area | `/admin` — Supabase Auth protected; approve/reject requests, create/delete polls, view stats |
 | Supabase RLS | Polls: public read / admin write. Votes: service-role only. Requests: public insert / admin read-update |
 

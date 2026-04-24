@@ -4,6 +4,8 @@ import { rateLimiter } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 function computeInsight(yesCount: number, noCount: number, total: number): string {
   if (total === 0) return 'No votes yet'
   const yesP = Math.round((yesCount / total) * 100)
@@ -40,6 +42,9 @@ export async function POST(
   }
   if (!deviceToken || typeof deviceToken !== 'string') {
     return NextResponse.json({ error: 'Missing device token' }, { status: 400 })
+  }
+  if (!UUID_PATTERN.test(deviceToken)) {
+    return NextResponse.json({ error: 'Invalid device token format' }, { status: 400 })
   }
 
   // Verify Turnstile

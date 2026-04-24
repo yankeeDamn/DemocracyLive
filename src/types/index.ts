@@ -11,6 +11,14 @@ export interface Poll {
   short_id: string
 }
 
+export type PollStatus = 'ACTIVE' | 'ENDED' | 'ENDING_SOON'
+
+export interface DashboardPoll extends Poll {
+  yes_percent: number
+  no_percent: number
+  status: PollStatus
+}
+
 export interface PollRequest {
   id: string
   question: string
@@ -20,6 +28,20 @@ export interface PollRequest {
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   notes: string | null
   created_at: string
+}
+
+export interface PollComment {
+  id: string
+  poll_id: string
+  choice: Vote
+  comment_text: string
+  alias: string | null
+  is_hidden?: boolean
+  created_at: string
+  polls?: Array<{
+    short_id: string
+    question: string
+  }> | null
 }
 
 export interface VoteResult {
