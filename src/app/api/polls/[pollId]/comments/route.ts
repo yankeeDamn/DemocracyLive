@@ -13,6 +13,28 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 const POSTGREST_COLUMN_NOT_FOUND = 'PGRST204'
 const POSTGRES_UNDEFINED_COLUMN = '42703'
 
+function isMissingDeviceHashColumnError(
+  error: { code?: string; message?: string; details?: string; hint?: string } | null
+): boolean {
+  if (!error) return false
+  if (error.code === POSTGREST_COLUMN_NOT_FOUND || error.code === POSTGRES_UNDEFINED_COLUMN) {
+    return true
+  }
+
+  const errorText = [error.message, error.details, error.hint]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return (
+    errorText.includes('device_hash') &&
+    errorText.includes('column') &&
+    (errorText.includes('not found') ||
+      errorText.includes('does not exist') ||
+      errorText.includes('schema cache'))
+  )
+}
+
 function getClientIp(req: NextRequest): string {
   const cfIp = req.headers.get('cf-connecting-ip')?.trim()
   if (cfIp) return cfIp
@@ -188,12 +210,8 @@ export async function POST(
 
   const firstAttemptResult = await insertComment({ ...insertBase, device_hash: deviceHash })
 
-  // PGRST204 = PostgREST "column not found"; 42703 = PostgreSQL "undefined column".
   // Fallback keeps compatibility with deployments where poll_comments has no device_hash column.
-  const shouldFallbackWithoutDeviceHash =
-    firstAttemptResult.error &&
-    (firstAttemptResult.error.code === POSTGREST_COLUMN_NOT_FOUND ||
-      firstAttemptResult.error.code === POSTGRES_UNDEFINED_COLUMN)
+  const shouldFallbackWithoutDeviceHash = isMissingDeviceHashColumnError(firstAttemptResult.error)
 
   const result = shouldFallbackWithoutDeviceHash
     ? await insertComment(insertBase)
