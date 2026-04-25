@@ -51,27 +51,27 @@ export default async function DashboardPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-sky-50 px-4 py-10">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <Image
           src="/globe.svg"
           alt=""
           width={112}
           height={112}
-          className="absolute -left-8 top-12 h-28 w-28 animate-[spin_40s_linear_infinite] opacity-20"
+          className="absolute -left-8 top-12 h-28 w-28 animate-[spin_40s_linear_infinite] opacity-20 motion-reduce:animate-none"
         />
         <Image
           src="/window.svg"
           alt=""
           width={96}
           height={96}
-          className="absolute right-6 top-24 h-24 w-24 animate-bounce opacity-15 [animation-duration:4s]"
+          className="absolute right-6 top-24 h-24 w-24 animate-bounce opacity-15 [animation-duration:4s] motion-reduce:animate-none"
         />
         <Image
           src="/file.svg"
           alt=""
           width={80}
           height={80}
-          className="absolute bottom-8 left-1/2 h-20 w-20 -translate-x-1/2 animate-pulse opacity-20"
+          className="absolute bottom-8 left-1/2 h-20 w-20 -translate-x-1/2 animate-pulse opacity-20 motion-reduce:animate-none"
         />
       </div>
 

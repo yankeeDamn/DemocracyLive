@@ -1,7 +1,7 @@
 export const COMMENT_MIN_LENGTH = 2
 export const COMMENT_MAX_LENGTH = 500
 
-const DEFAULT_MASKED_TERMS = ['f**k', 's**t', 'b***h', 'a*****e', 'i***t']
+const DEFAULT_MASKED_TERMS = ['fuck', 'shit', 'bitch', 'asshole', 'idiot']
 
 function patternFromMaskedTerm(masked: string): RegExp {
   const escaped = masked
