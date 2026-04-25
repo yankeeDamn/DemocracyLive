@@ -170,16 +170,29 @@ export async function POST(
     return NextResponse.json({ error: 'Comment choice must match your vote' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const insertBase = {
+    poll_id: poll.id,
+    choice,
+    comment_text: commentText,
+    alias,
+  }
+
+  let { data, error } = await supabase
     .from('poll_comments')
-    .insert({
-      poll_id: poll.id,
-      choice,
-      comment_text: commentText,
-      alias,
-    })
+    .insert(insertBase)
     .select('id, poll_id, choice, comment_text, alias, created_at')
     .single()
+
+  if (error?.code === '23502' && error.message.toLowerCase().includes('device_hash')) {
+    const retry = await supabase
+      .from('poll_comments')
+      .insert({ ...insertBase, device_hash: deviceHash })
+      .select('id, poll_id, choice, comment_text, alias, created_at')
+      .single()
+
+    data = retry.data
+    error = retry.error
+  }
 
   if (error || !data) {
     return NextResponse.json({ error: 'Failed to save comment' }, { status: 500 })
