@@ -10,6 +10,8 @@ import {
 } from '@/lib/comments'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const POSTGREST_COLUMN_NOT_FOUND = 'PGRST204'
+const POSTGRES_UNDEFINED_COLUMN = '42703'
 
 function getClientIp(req: NextRequest): string {
   const cfIp = req.headers.get('cf-connecting-ip')?.trim()
@@ -170,16 +172,33 @@ export async function POST(
     return NextResponse.json({ error: 'Comment choice must match your vote' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
-    .from('poll_comments')
-    .insert({
-      poll_id: poll.id,
-      choice,
-      comment_text: commentText,
-      alias,
-    })
-    .select('id, poll_id, choice, comment_text, alias, created_at')
-    .single()
+  const insertBase = {
+    poll_id: poll.id,
+    choice,
+    comment_text: commentText,
+    alias,
+  }
+
+  const insertComment = (payload: Record<string, unknown>) =>
+    supabase
+      .from('poll_comments')
+      .insert(payload)
+      .select('id, poll_id, choice, comment_text, alias, created_at')
+      .single()
+
+  const firstAttemptResult = await insertComment({ ...insertBase, device_hash: deviceHash })
+
+  // PGRST204 = PostgREST "column not found"; 42703 = PostgreSQL "undefined column".
+  // Fallback keeps compatibility with deployments where poll_comments has no device_hash column.
+  const shouldFallbackWithoutDeviceHash =
+    firstAttemptResult.error &&
+    (firstAttemptResult.error.code === POSTGREST_COLUMN_NOT_FOUND ||
+      firstAttemptResult.error.code === POSTGRES_UNDEFINED_COLUMN)
+
+  const result = shouldFallbackWithoutDeviceHash
+    ? await insertComment(insertBase)
+    : firstAttemptResult
+  const { data, error } = result
 
   if (error || !data) {
     return NextResponse.json({ error: 'Failed to save comment' }, { status: 500 })
