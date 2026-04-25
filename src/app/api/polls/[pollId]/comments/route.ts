@@ -21,17 +21,17 @@ function isMissingDeviceHashColumnError(
     return true
   }
 
-  const detailsText = [error.message, error.details, error.hint]
+  const errorText = [error.message, error.details, error.hint]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 
   return (
-    detailsText.includes('device_hash') &&
-    detailsText.includes('column') &&
-    (detailsText.includes('not found') ||
-      detailsText.includes('does not exist') ||
-      detailsText.includes('schema cache'))
+    errorText.includes('device_hash') &&
+    errorText.includes('column') &&
+    (errorText.includes('not found') ||
+      errorText.includes('does not exist') ||
+      errorText.includes('schema cache'))
   )
 }
 
