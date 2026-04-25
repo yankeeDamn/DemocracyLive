@@ -177,24 +177,25 @@ export async function POST(
     alias,
   }
 
-  let { data, error } = await supabase
-    .from('poll_comments')
-    .insert({ ...insertBase, device_hash: deviceHash })
-    .select('id, poll_id, choice, comment_text, alias, created_at')
-    .single()
-
-  if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-    const retry = await supabase
+  const insertComment = (payload: Record<string, unknown>) =>
+    supabase
       .from('poll_comments')
-      .insert(insertBase)
+      .insert(payload)
       .select('id, poll_id, choice, comment_text, alias, created_at')
       .single()
 
-    data = retry.data
-    error = retry.error
-  }
+  const withDeviceHash = await insertComment({ ...insertBase, device_hash: deviceHash })
 
-  if (error || !data) {
+  // PGRST204 = PostgREST "column not found"; 42703 = PostgreSQL "undefined column".
+  // Fallback keeps compatibility with deployments where poll_comments has no device_hash column.
+  const shouldFallbackWithoutDeviceHash =
+    withDeviceHash.error &&
+    (withDeviceHash.error.code === 'PGRST204' || withDeviceHash.error.code === '42703')
+
+  const result = shouldFallbackWithoutDeviceHash ? await insertComment(insertBase) : withDeviceHash
+  const { data, error } = result
+
+  if (!data || error) {
     return NextResponse.json({ error: 'Failed to save comment' }, { status: 500 })
   }
 
