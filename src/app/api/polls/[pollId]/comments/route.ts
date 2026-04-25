@@ -232,7 +232,7 @@ export async function POST(
   if (shouldFallbackWithoutDeviceHash) {
     const fallbackResult = await insertComment(insertBase)
     if (isDeviceHashNotNullError(fallbackResult.error)) {
-      result = firstAttemptResult
+      result = await insertComment({ ...insertBase, device_hash: deviceHash })
     } else {
       result = fallbackResult
     }
