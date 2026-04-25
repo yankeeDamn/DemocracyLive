@@ -179,14 +179,14 @@ export async function POST(
 
   let { data, error } = await supabase
     .from('poll_comments')
-    .insert(insertBase)
+    .insert({ ...insertBase, device_hash: deviceHash })
     .select('id, poll_id, choice, comment_text, alias, created_at')
     .single()
 
-  if (error?.code === '23502' && error.message.toLowerCase().includes('device_hash')) {
+  if (error && (error.code === 'PGRST204' || error.code === '42703')) {
     const retry = await supabase
       .from('poll_comments')
-      .insert({ ...insertBase, device_hash: deviceHash })
+      .insert(insertBase)
       .select('id, poll_id, choice, comment_text, alias, created_at')
       .single()
 
