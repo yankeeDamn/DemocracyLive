@@ -231,7 +231,9 @@ export async function POST(
 
   if (shouldFallbackWithoutDeviceHash) {
     const fallbackResult = await insertComment(insertBase)
-    result = isDeviceHashNotNullError(fallbackResult.error) ? firstAttemptResult : fallbackResult
+    if (!isDeviceHashNotNullError(fallbackResult.error)) {
+      result = fallbackResult
+    }
   }
   const { data, error } = result
 
